@@ -23,27 +23,29 @@
         //Tabu parameters
         public class Random
         {
-            public const int TabuLifeIterations = 15; //15
+            public const int TabuLifeIterations = 5; //15
 
-            public const int TabuListLength = 30; //40
+            public const int TabuListLength = 1; //40
         }
 
         public class Greedy
         {
-            public const int TabuLifeIterations = 3; //10
+            public const int TabuLifeIterations = 1; //10
 
-            public const int TabuListLength = 3; //3
+            public const int TabuListLength = 1; //3
         }
 
         //Other parameters
 
-        public const int WriteOutLimit = 200000; //If scores under this are reached, the results will be written out to file. Set to negative value to write all results to file
+        public const int ExamBlockLength = 5;
+
+        public const int WriteOutLimit = 60; //If scores under this are reached, the results will be written out to file. Set to negative value to write all results to file
 
         public const int MaxShuffles = 1;
 
         public const int ShufflePercentage = 20;
 
-        public const int GeneratedCandidates = 25; //25
+        public const int GeneratedCandidates = 15; //25
 
         public const int AllowedIdleIterations = 10; //10
 
@@ -53,7 +55,7 @@
 
         public const int MaxFailedNeighbourGenerations = 5; //3
 
-        public const int TandemIdleSwitches = 3; //1
+        public const int TandemIdleSwitches = 5; //1
 
         //Optimalization switches for distinct constraints
         public const bool SolveWrongExaminer = true;

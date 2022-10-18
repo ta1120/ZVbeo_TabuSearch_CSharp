@@ -78,10 +78,10 @@ namespace FinalExamScheduling.TabuSearchScheduling
                         string name = data[1];
                         if (neighbours[i].Schedule.FinalExams[index].President.Name.Equals(name))
                         {
-                            int x = rand.Next(0, ctx.Presidents.Length);
+                            int x = 0;
                             while (!ctx.Presidents[x].Availability[index])
                             {
-                                x = rand.Next(0, ctx.Presidents.Length);
+                                if (x < (ctx.Presidents.Length - 1)) x++; 
                             }
                             neighbours[i].Schedule.FinalExams[index].President = ctx.Presidents[x];
                         }
@@ -94,10 +94,10 @@ namespace FinalExamScheduling.TabuSearchScheduling
                         string name = data[1];
                         if (neighbours[i].Schedule.FinalExams[index].Secretary.Name.Equals(name))
                         {
-                            int x = rand.Next(0, ctx.Secretaries.Length);
+                            int x = 0;
                             while (!ctx.Secretaries[x].Availability[index])
                             {
-                                x = rand.Next(0, ctx.Secretaries.Length);
+                                if (x < (ctx.Secretaries.Length - 1)) x++;
                             }
                             neighbours[i].Schedule.FinalExams[index].Secretary = ctx.Secretaries[x];
                         }
@@ -170,17 +170,19 @@ namespace FinalExamScheduling.TabuSearchScheduling
                     {
                         string[] data = v.Value.Split(';');
                         int index = int.Parse(data[0]);
-                        string name = data[1];
+                        string presidentName = data[1];
+                        int offset = int.Parse(data[2]);
 
-                        neighbours[i].Schedule.FinalExams[index].President = ctx.GetInstructorByName(name);
+                        if (neighbours[i].Schedule.FinalExams[index-offset].President.Name.Equals(presidentName)) neighbours[i].Schedule.FinalExams[index].President = ctx.GetInstructorByName(presidentName);
                     }
                     else if (v.Key.Equals("secretaryChange"))
                     {
                         string[] data = v.Value.Split(';');
                         int index = int.Parse(data[0]);
-                        string name = data[1];
+                        string secretaryName = data[1];
+                        int offset = int.Parse(data[2]);
 
-                        neighbours[i].Schedule.FinalExams[index].Secretary = ctx.GetInstructorByName(name);
+                        if (neighbours[i].Schedule.FinalExams[index-offset].Secretary.Name.Equals(secretaryName)) neighbours[i].Schedule.FinalExams[index].Secretary = ctx.GetInstructorByName(secretaryName);
                     }
 
                     else if (v.Key.Equals("presidentIsSecretary"))
@@ -218,8 +220,8 @@ namespace FinalExamScheduling.TabuSearchScheduling
 
                 }
 
-                //Trying to fix soft violations after
-                if (TSParameters.OptimizeSoftConstraints)
+                //Trying to fix soft violations only after no hard ones left
+                if (TSParameters.OptimizeSoftConstraints && !VL.ContainsHardViolation())
                 {
                     foreach (KeyValuePair<string, string> v in VL.Violations)
                     {
@@ -315,8 +317,8 @@ namespace FinalExamScheduling.TabuSearchScheduling
             {
                 neighbours[i] = new SolutionCandidate(current.Clone().Schedule);
 
-                //Trying to fix soft violations first
-                if (TSParameters.OptimizeSoftConstraints)
+                //Trying to fix soft violations only when there are no hard ones left
+                if (TSParameters.OptimizeSoftConstraints && !VL.ContainsHardViolation())
                 {
                     foreach (KeyValuePair<string, string> v in VL.Violations)
                     {
@@ -407,7 +409,7 @@ namespace FinalExamScheduling.TabuSearchScheduling
                     }
                 }
 
-                //Trying to fix hard violations after
+                //Hard violations
                 foreach (KeyValuePair<string, string> v in VL.Violations)
                 {
                     if (v.Key.Equals(v.Key.Equals("supervisorAvailability")))
@@ -460,7 +462,10 @@ namespace FinalExamScheduling.TabuSearchScheduling
                         if (neighbours[i].Schedule.FinalExams[index].President.Name.Equals(name))
                         {
                             int x = rand.Next(0, ctx.Presidents.Length);
-
+                            while (!ctx.Presidents[x].Availability[index])
+                            {
+                                x = rand.Next(0, ctx.Presidents.Length);
+                            }
                             neighbours[i].Schedule.FinalExams[index].President = ctx.Presidents[x];
                         }
 
@@ -473,7 +478,10 @@ namespace FinalExamScheduling.TabuSearchScheduling
                         if (neighbours[i].Schedule.FinalExams[index].Secretary.Name.Equals(name))
                         {
                             int x = rand.Next(0, ctx.Secretaries.Length);
-
+                            while (!ctx.Secretaries[x].Availability[index])
+                            {
+                                x = rand.Next(0, ctx.Secretaries.Length);
+                            }
                             neighbours[i].Schedule.FinalExams[index].Secretary = ctx.Secretaries[x];
                         }
                     }
@@ -518,24 +526,24 @@ namespace FinalExamScheduling.TabuSearchScheduling
                             neighbours[i].Schedule.FinalExams[index].Member = ctx.Members[x];
                         }
                     }
-
                     else if (v.Key.Equals("presidentChange"))
                     {
                         string[] data = v.Value.Split(';');
                         int index = int.Parse(data[0]);
-                        string name = data[1];
+                        string presidentName = data[1];
+                        int offset = int.Parse(data[2]);
 
-                        neighbours[i].Schedule.FinalExams[index].President = ctx.GetInstructorByName(name);
+                        if (neighbours[i].Schedule.FinalExams[index - offset].President.Name.Equals(presidentName)) neighbours[i].Schedule.FinalExams[index].President = ctx.GetInstructorByName(presidentName);
                     }
                     else if (v.Key.Equals("secretaryChange"))
                     {
                         string[] data = v.Value.Split(';');
                         int index = int.Parse(data[0]);
-                        string name = data[1];
+                        string secretaryName = data[1];
+                        int offset = int.Parse(data[2]);
 
-                        neighbours[i].Schedule.FinalExams[index].Secretary = ctx.GetInstructorByName(name);
+                        if (neighbours[i].Schedule.FinalExams[index - offset].Secretary.Name.Equals(secretaryName)) neighbours[i].Schedule.FinalExams[index].Secretary = ctx.GetInstructorByName(secretaryName);
                     }
-
                     else if (v.Key.Equals("presidentIsSecretary"))
                     {
                         string[] data = v.Value.Split(';');
