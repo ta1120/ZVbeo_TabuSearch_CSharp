@@ -14,7 +14,7 @@ namespace FinalExamScheduling.TabuSearchScheduling
             ctx = context;
         }
 
-        public SolutionCandidate[] GenerateNeighboursGreedy(SolutionCandidate current)
+        public SolutionCandidate[] GenerateNeighboursHeuristic(SolutionCandidate current)
         {
             int candidateCount = TSParameters.GeneratedCandidates;
 
@@ -30,91 +30,192 @@ namespace FinalExamScheduling.TabuSearchScheduling
 
                 foreach (KeyValuePair<string, string> v in VL.Violations)
                 {
-                    if (v.Key.Equals("studentDuplicated") || v.Key.Equals("supervisorAvailability"))
+                    if (v.Key.Equals(v.Key.Equals("supervisorAvailability")))
                     {
-                        int index = int.Parse(v.Value);
-                        int x = rand.Next(0, ctx.Students.Length);
-                        while (index == x && neighbours[i].Schedule.FinalExams[index].Student.Supervisor.Availability[x] && neighbours[i].Schedule.FinalExams[x].Student.Supervisor.Availability[index]) x = rand.Next(0, ctx.Students.Length);
+                        string[] data = v.Value.Split(';');
+                        int index = int.Parse(data[0]);
+                        string name = data[1];
+                        if (neighbours[i].Schedule.FinalExams[index].Supervisor.Name.Equals(name))
+                        {
+                            int x = rand.Next(0, ctx.Students.Length);
+                            while (index == x && neighbours[i].Schedule.FinalExams[index].Student.Supervisor.Availability[x] && neighbours[i].Schedule.FinalExams[x].Student.Supervisor.Availability[index]) x = rand.Next(0, ctx.Students.Length);
 
-                        Student temp = neighbours[i].Schedule.FinalExams[index].Student;
+                            Student temp = neighbours[i].Schedule.FinalExams[index].Student;
 
-                        neighbours[i].Schedule.FinalExams[index].Student = neighbours[i].Schedule.FinalExams[x].Student;
-                        neighbours[i].Schedule.FinalExams[x].Student = temp;
-                        neighbours[i].Schedule.FinalExams[index].Supervisor = neighbours[i].Schedule.FinalExams[index].Student.Supervisor;
-                        neighbours[i].Schedule.FinalExams[x].Supervisor = neighbours[i].Schedule.FinalExams[x].Student.Supervisor;
+                            neighbours[i].Schedule.FinalExams[index].Student = neighbours[i].Schedule.FinalExams[x].Student;
+                            neighbours[i].Schedule.FinalExams[x].Student = temp;
+                            neighbours[i].Schedule.FinalExams[index].Supervisor = neighbours[i].Schedule.FinalExams[index].Student.Supervisor;
+                            neighbours[i].Schedule.FinalExams[x].Supervisor = neighbours[i].Schedule.FinalExams[x].Student.Supervisor;
+                        }
+                    }
+                    else if(v.Key.Equals("studentDuplicated"))
+                    {
+                        string[] data = v.Value.Split(';');
+                        int missingID = -1;
+                        int duplicatedID = -1;
+                        for(int index = 0;i<ctx.Students.Length;index++)
+                        {
+                            int currentIDCount = int.Parse(data[i]);
+                            if (currentIDCount == 0) missingID = currentIDCount;
+                            else if (currentIDCount > 1) duplicatedID = currentIDCount;
+                        }
+                        if(!(duplicatedID == -1 || missingID == -1))
+                        {
+                            foreach(FinalExam fe in neighbours[i].Schedule.FinalExams)
+                            {
+                                if(fe.Student.Id == duplicatedID)
+                                {
+                                    fe.Student = ctx.GetStudentById(missingID);
+                                    fe.Supervisor = fe.Student.Supervisor;
+                                }
+                            }
+                        }
                     }
                     else if (v.Key.Equals("presidentAvailability"))
                     {
-
-                        int x = rand.Next(0, ctx.Presidents.Length);
-                        while (!ctx.Presidents[x].Availability[int.Parse(v.Value)])
+                        string[] data = v.Value.Split(';');
+                        int index = int.Parse(data[0]);
+                        string name = data[1];
+                        if (neighbours[i].Schedule.FinalExams[index].President.Name.Equals(name))
                         {
-                            x = rand.Next(0, ctx.Presidents.Length);
+                            int x = rand.Next(0, ctx.Presidents.Length);
+                            while (!ctx.Presidents[x].Availability[index])
+                            {
+                                x = rand.Next(0, ctx.Presidents.Length);
+                            }
+                            neighbours[i].Schedule.FinalExams[index].President = ctx.Presidents[x];
                         }
-                        neighbours[i].Schedule.FinalExams[int.Parse(v.Value)].President = ctx.Presidents[x];
 
                     }
                     else if (v.Key.Equals("secretaryAvailability"))
                     {
-                        int x = rand.Next(0, ctx.Secretaries.Length);
-                        while (!ctx.Secretaries[x].Availability[int.Parse(v.Value)])
+                        string[] data = v.Value.Split(';');
+                        int index = int.Parse(data[0]);
+                        string name = data[1];
+                        if (neighbours[i].Schedule.FinalExams[index].Secretary.Name.Equals(name))
                         {
-                            x = rand.Next(0, ctx.Secretaries.Length);
+                            int x = rand.Next(0, ctx.Secretaries.Length);
+                            while (!ctx.Secretaries[x].Availability[index])
+                            {
+                                x = rand.Next(0, ctx.Secretaries.Length);
+                            }
+                            neighbours[i].Schedule.FinalExams[index].Secretary = ctx.Secretaries[x];
                         }
-                        neighbours[i].Schedule.FinalExams[int.Parse(v.Value)].Secretary = ctx.Secretaries[x];
                     }
-                    else if (v.Key.Equals("examinerAvailability") || v.Key.Equals("wrongExaminer"))
+                    else if(v.Key.Equals("wrongExaminer"))
                     {
-                        int x = rand.Next(0, ctx.Instructors.Length);
-                        int ctr = 0;
-                        int max = 10;
-                        while (ctr < max && (!ctx.Instructors[x].Availability[int.Parse(v.Value)] || !neighbours[i].Schedule.FinalExams[int.Parse(v.Value)].Student.ExamCourse.Instructors.ToArray().Contains(ctx.Instructors[x])))
+                        string[] data = v.Value.Split(';');
+                        int index = int.Parse(data[0]);
+                        string name = data[1];
+                        if (neighbours[i].Schedule.FinalExams[index].Examiner.Name.Equals(name))
                         {
-                            x = rand.Next(0, ctx.Instructors.Length);
-                            ctr++;
+                            int instIndex = 1;
+                            Instructor newExaminer = ctx.Instructors[0];
+                            while(instIndex < ctx.Instructors.Length && !neighbours[i].Schedule.FinalExams[index].Student.ExamCourse.Instructors.Contains(newExaminer))
+                            {
+                                newExaminer = ctx.Instructors[instIndex];
+                                instIndex++;
+                            }
+                            if (neighbours[i].Schedule.FinalExams[index].Student.ExamCourse.Instructors.Contains(newExaminer)) neighbours[i].Schedule.FinalExams[index].Examiner = newExaminer;
                         }
-                        // If no eligible examiner is available at the time, switch 2 random students and go on
-                        if (ctr >= max)
+                    }
+                    else if (v.Key.Equals("examinerAvailability"))
+                    {
+                        string[] data = v.Value.Split(';');
+                        int index = int.Parse(data[0]);
+                        string name = data[1];
+                        if (neighbours[i].Schedule.FinalExams[index].Examiner.Name.Equals(name))
                         {
-                            int index = int.Parse(v.Value);
-                            int y = rand.Next(0, ctx.Students.Length);
-                            while (index == y) y = rand.Next(0, ctx.Students.Length);
+                            int x = rand.Next(0, ctx.Instructors.Length);
+                            int ctr = 0;
+                            int max = 10;
+                            while (ctr < max && (!ctx.Instructors[x].Availability[index] || !neighbours[i].Schedule.FinalExams[index].Student.ExamCourse.Instructors.ToArray().Contains(ctx.Instructors[x])))
+                            {
+                                x = rand.Next(0, ctx.Instructors.Length);
+                                ctr++;
+                            }
+                            // If no eligible examiner is available at the time, switch 2 random students and go on
+                            if (ctr >= max)
+                            {
+                                int y = rand.Next(0, ctx.Students.Length);
+                                while (index == y) y = rand.Next(0, ctx.Students.Length);
 
-                            Student temp = neighbours[i].Schedule.FinalExams[index].Student;
+                                Student temp = neighbours[i].Schedule.FinalExams[index].Student;
 
-                            neighbours[i].Schedule.FinalExams[index].Student = neighbours[i].Schedule.FinalExams[y].Student;
-                            neighbours[i].Schedule.FinalExams[y].Student = temp;
-                            neighbours[i].Schedule.FinalExams[index].Supervisor = neighbours[i].Schedule.FinalExams[index].Student.Supervisor;
-                            neighbours[i].Schedule.FinalExams[y].Supervisor = neighbours[i].Schedule.FinalExams[y].Student.Supervisor;
+                                neighbours[i].Schedule.FinalExams[index].Student = neighbours[i].Schedule.FinalExams[y].Student;
+                                neighbours[i].Schedule.FinalExams[y].Student = temp;
+                                neighbours[i].Schedule.FinalExams[index].Supervisor = neighbours[i].Schedule.FinalExams[index].Student.Supervisor;
+                                neighbours[i].Schedule.FinalExams[y].Supervisor = neighbours[i].Schedule.FinalExams[y].Student.Supervisor;
+                            }
+                            else neighbours[i].Schedule.FinalExams[index].Examiner = ctx.Instructors[x];
                         }
-                        else neighbours[i].Schedule.FinalExams[int.Parse(v.Value)].Examiner = ctx.Instructors[x];
                     }
                     else if (v.Key.Equals("memberAvailability"))
                     {
-                        int x = rand.Next(0, ctx.Members.Length);
-                        while (!ctx.Members[x].Availability[int.Parse(v.Value)])
+                        string[] data = v.Value.Split(';');
+                        int index = int.Parse(data[0]);
+                        string name = data[1];
+                        if (neighbours[i].Schedule.FinalExams[index].Member.Name.Equals(name))
                         {
-                            x = rand.Next(0, ctx.Members.Length);
+                            int x = rand.Next(0, ctx.Members.Length);
+                            while (!ctx.Members[x].Availability[index])
+                            {
+                                x = rand.Next(0, ctx.Members.Length);
+                            }
+                            neighbours[i].Schedule.FinalExams[index].Member = ctx.Members[x];
                         }
-                        neighbours[i].Schedule.FinalExams[int.Parse(v.Value)].Member = ctx.Members[x];
                     }
 
                     else if (v.Key.Equals("presidentChange"))
                     {
-                        string[] indexes = v.Value.Split(';');
-                        int feIndex = int.Parse(indexes[0]);
-                        int offset = int.Parse(indexes[1]);
+                        string[] data = v.Value.Split(';');
+                        int index = int.Parse(data[0]);
+                        string name = data[1];
 
-                        neighbours[i].Schedule.FinalExams[feIndex + offset].President = neighbours[i].Schedule.FinalExams[feIndex].President;
+                        neighbours[i].Schedule.FinalExams[index].President = ctx.GetInstructorByName(name);
                     }
                     else if (v.Key.Equals("secretaryChange"))
                     {
-                        string[] indexes = v.Value.Split(';');
-                        int feIndex = int.Parse(indexes[0]);
-                        int offset = int.Parse(indexes[1]);
+                        string[] data = v.Value.Split(';');
+                        int index = int.Parse(data[0]);
+                        string name = data[1];
 
-                        neighbours[i].Schedule.FinalExams[feIndex].Secretary = neighbours[i].Schedule.FinalExams[feIndex + 1].Secretary;
+                        neighbours[i].Schedule.FinalExams[index].Secretary = ctx.GetInstructorByName(name);
                     }
+
+                    else if (v.Key.Equals("presidentIsSecretary"))
+                    {
+                        string[] data = v.Value.Split(';');
+                        int index = int.Parse(data[0]);
+                        string name = data[1];
+                        if (neighbours[i].Schedule.FinalExams[index].President.Name.Equals(name))
+                        {
+                            int x = rand.Next(0, ctx.Secretaries.Length);
+                            while (!ctx.Secretaries[x].Name.Equals(neighbours[i].Schedule.FinalExams[index].Secretary.Name))
+                            {
+                                x = rand.Next(0, ctx.Secretaries.Length);
+                            }
+
+                            neighbours[i].Schedule.FinalExams[index].Secretary = ctx.Secretaries[x];
+                        }
+                    }
+                    else if (v.Key.Equals("presidentIsMember") || v.Key.Equals("secretaryIsMember"))
+                    {
+                        string[] data = v.Value.Split(';');
+                        int index = int.Parse(data[0]);
+                        string name = data[1];
+                        if (neighbours[i].Schedule.FinalExams[index].President.Name.Equals(name))
+                        {
+                            int x = rand.Next(0, ctx.Members.Length);
+                            while (!ctx.Members[x].Name.Equals(neighbours[i].Schedule.FinalExams[index].Member.Name))
+                            {
+                                x = rand.Next(0, ctx.Members.Length);
+                            }
+
+                            neighbours[i].Schedule.FinalExams[index].Member = ctx.Members[x];
+                        }
+                    }
+
                 }
 
                 //Trying to fix soft violations after
@@ -124,180 +225,75 @@ namespace FinalExamScheduling.TabuSearchScheduling
                     {
                         if (v.Key.Equals("supervisorNotPresident"))
                         {
-                            int eI = int.Parse(v.Value);
-                            int x = 0;
-                            FinalExam[] fe = neighbours[i].Schedule.FinalExams;
-                            while(x < ctx.Students.Length)
-                            {
-                                if(x != i && fe[x].President.Name.Equals(fe[eI].Supervisor.Name) && !fe[x].President.Name.Equals(fe[x].Supervisor.Name) && fe[x].President.Availability[x] && fe[x].Supervisor.Availability[eI] && fe[eI].Examiner.Availability[x] && fe[x].Examiner.Availability[eI])
-                                {
-
-                                    FinalExam tempI = fe[eI].Clone();
-                                    FinalExam tempX = fe[x].Clone();
-                                    fe[eI] = tempX.Clone();
-                                    fe[x] = tempI.Clone();
-
-                                    fe[eI].Secretary = tempI.Secretary;
-                                    fe[eI].Member = tempI.Member;
-                                    fe[x].President = tempX.President;
-                                    fe[x].Secretary = tempX.Secretary;
-                                    fe[x].Member = tempI.Member;
-                                }
-
-                                x++;
-                            }
+                            string[] val = v.Value.Split(';');
+                            int index = int.Parse(val[0]);
+                            string name = val[1];
+                            if (neighbours[i].Schedule.FinalExams[index].Supervisor.Name.Equals(name)) neighbours[i].Schedule.FinalExams[index].President = neighbours[i].Schedule.FinalExams[index].Supervisor;
                         }
                         else if (v.Key.Equals("supervisorNotSecretary"))
                         {
-                            int eI = int.Parse(v.Value);
-                            int x = 0;
-                            FinalExam[] fe = neighbours[i].Schedule.FinalExams;
-                            while (x < ctx.Students.Length)
-                            {
-                                if (x != i && fe[x].Secretary.Name.Equals(fe[eI].Supervisor.Name) && !fe[x].Secretary.Name.Equals(fe[x].Supervisor.Name) && fe[x].Secretary.Availability[x] && fe[x].Supervisor.Availability[eI] && fe[eI].Examiner.Availability[x] && fe[x].Examiner.Availability[eI])
-                                {
-
-                                    FinalExam tempI = fe[eI].Clone();
-                                    FinalExam tempX = fe[x].Clone();
-                                    fe[eI] = tempX.Clone();
-                                    fe[x] = tempI.Clone();
-
-                                    fe[eI].President = tempI.President;
-                                    fe[eI].Member = tempI.Member;
-                                    fe[x].President = tempX.President;
-                                    fe[x].Secretary = tempX.Secretary;
-                                    fe[x].Member = tempI.Member;
-                                }
-
-                                x++;
-                            }
+                            string[] val = v.Value.Split(';');
+                            int index = int.Parse(val[0]);
+                            string name = val[1];
+                            if (neighbours[i].Schedule.FinalExams[index].Supervisor.Name.Equals(name)) neighbours[i].Schedule.FinalExams[index].Secretary = neighbours[i].Schedule.FinalExams[index].Supervisor;
                         }
                         else if (v.Key.Equals("examinerNotPresident"))
                         {
-                            int eI = int.Parse(v.Value);
-                            int x = 0;
-                            FinalExam[] fe = neighbours[i].Schedule.FinalExams;
-                            while (x < ctx.Students.Length)
-                            {
-                                if (x != i && fe[x].President.Name.Equals(fe[eI].Examiner.Name) && !fe[x].President.Name.Equals(fe[x].Examiner.Name) && fe[x].President.Availability[x] && fe[x].Examiner.Availability[eI])
-                                {
-
-                                    FinalExam tempI = fe[eI].Clone();
-                                    FinalExam tempX = fe[x].Clone();
-                                    fe[eI] = tempX.Clone();
-                                    fe[x] = tempI.Clone();
-
-                                    fe[eI].Secretary = tempI.Secretary;
-                                    fe[eI].Member = tempI.Member;
-                                    fe[x].President = tempX.President;
-                                    fe[x].Secretary = tempX.Secretary;
-                                    fe[x].Member = tempI.Member;
-                                }
-
-                                x++;
-                            }
-                        }/*
-                        else if (v.Key.Equals("examinerNotSecretary"))
-                        {
-                            int eI = int.Parse(v.Value);
-                            int x = 0;
-                            FinalExam[] fe = neighbours[i].Schedule.FinalExams;
-                            while (x < ctx.Students.Length)
-                            {
-                                if (x != i && fe[x].Secretary.Name.Equals(fe[eI].Examiner.Name) && !fe[x].Secretary.Name.Equals(fe[x].Examiner.Name) && fe[x].Secretary.Availability[x] && fe[x].Examiner.Availability[eI])
-                                {
-
-                                    FinalExam tempI = fe[eI].Clone();
-                                    FinalExam tempX = fe[x].Clone();
-                                    fe[eI] = tempX.Clone();
-                                    fe[x] = tempI.Clone();
-
-                                    fe[eI].President = tempI.President;
-                                    fe[eI].Member = tempI.Member;
-                                    fe[x].President = tempX.President;
-                                    fe[x].Secretary = tempX.Secretary;
-                                    fe[x].Member = tempI.Member;
-                                }
-
-                                x++;
-                            }
+                            string[] val = v.Value.Split(';');
+                            int index = int.Parse(val[0]);
+                            string name = val[1];
+                            if (neighbours[i].Schedule.FinalExams[index].Examiner.Name.Equals(name)) neighbours[i].Schedule.FinalExams[index].President = neighbours[i].Schedule.FinalExams[index].Examiner;
                         }
-                        else if (v.Key.Equals("examinerNotMember"))
+                        else if(v.Key.Equals("secretaryNotExaminer"))
                         {
-                            int eI = int.Parse(v.Value);
-                            int x = 0;
-                            FinalExam[] fe = neighbours[i].Schedule.FinalExams;
-                            while (x < ctx.Students.Length)
-                            {
-                                if (x != i && fe[x].Member.Name.Equals(fe[eI].Examiner.Name) && !fe[x].Member.Name.Equals(fe[x].Examiner.Name) && fe[x].Member.Availability[x] && fe[x].Examiner.Availability[eI])
-                                {
-
-                                    FinalExam tempI = fe[eI].Clone();
-                                    FinalExam tempX = fe[x].Clone();
-                                    fe[eI] = tempX.Clone();
-                                    fe[x] = tempI.Clone();
-
-                                    fe[eI].Secretary = tempI.Secretary;
-                                    fe[eI].President = tempI.President;
-                                    fe[x].President = tempX.President;
-                                    fe[x].Secretary = tempX.Secretary;
-                                    fe[x].Member = tempI.Member;
-                                }
-
-                                x++;
-                            }
+                            string[] val = v.Value.Split(';');
+                            int index = int.Parse(val[0]);
+                            string name = val[1];
+                            if (neighbours[i].Schedule.FinalExams[index].Secretary.Name.Equals(name)) neighbours[i].Schedule.FinalExams[index].Examiner = neighbours[i].Schedule.FinalExams[index].Secretary;
                         }
-                        else if (v.Key.Equals("supervisorNotMember"))
+                        else if (v.Key.Equals("memberNotExaminer"))
                         {
-                            int eI = int.Parse(v.Value);
-                            int x = 0;
-                            FinalExam[] fe = neighbours[i].Schedule.FinalExams;
-                            while (x < ctx.Students.Length)
-                            {
-                                if (x != i && fe[x].Member.Name.Equals(fe[eI].Supervisor.Name) && !fe[x].Member.Name.Equals(fe[x].Supervisor.Name) && fe[x].Member.Availability[x] && fe[x].Supervisor.Availability[eI])
-                                {
-
-                                    FinalExam tempI = fe[eI].Clone();
-                                    FinalExam tempX = fe[x].Clone();
-                                    fe[eI] = tempX.Clone();
-                                    fe[x] = tempI.Clone();
-
-                                    fe[eI].Secretary = tempI.Secretary;
-                                    fe[eI].President = tempI.President;
-                                    fe[x].President = tempX.President;
-                                    fe[x].Secretary = tempX.Secretary;
-                                    fe[x].Member = tempI.Member;
-                                }
-
-                                x++;
-                            }
+                            string[] val = v.Value.Split(';');
+                            int index = int.Parse(val[0]);
+                            string name = val[1];
+                            if (neighbours[i].Schedule.FinalExams[index].Member.Name.Equals(name)) neighbours[i].Schedule.FinalExams[index].Examiner = neighbours[i].Schedule.FinalExams[index].Member;
                         }
                         else if (v.Key.Equals("supervisorNotExaminer"))
                         {
-                            int eI = int.Parse(v.Value);
-                            int x = 0;
-                            FinalExam[] fe = neighbours[i].Schedule.FinalExams;
-                            while (x < ctx.Students.Length)
+                            string[] val = v.Value.Split(';');
+                            int index = int.Parse(val[0]);
+                            string name = val[1];
+                            if (neighbours[i].Schedule.FinalExams[index].Supervisor.Name.Equals(name)) neighbours[i].Schedule.FinalExams[index].Examiner = neighbours[i].Schedule.FinalExams[index].Supervisor;
+                        }
+                        
+                        else if (v.Key.Equals("supervisorNotMember"))
+                        {
+                            string[] val = v.Value.Split(';');
+                            int index = int.Parse(val[0]);
+                            string name = val[1];
+                            if (neighbours[i].Schedule.FinalExams[index].Supervisor.Name.Equals(name)) neighbours[i].Schedule.FinalExams[index].Member = neighbours[i].Schedule.FinalExams[index].Supervisor;
+                        }
+                        
+                        else if (v.Key.Equals("presidentChangeLong"))
+                        {
+                            string[] data = v.Value.Split(';');
+                            int index = int.Parse(data[0]);
+                            string name = data[1];
+                            if (neighbours[i].Schedule.FinalExams[index-1].President.Name.Equals(name))
                             {
-                                if (x != i && fe[x].Supervisor.Name.Equals(fe[eI].Examiner.Name) && !fe[x].Supervisor.Name.Equals(fe[x].Examiner.Name) && fe[x].Supervisor.Availability[x] && fe[x].Examiner.Availability[eI])
-                                {
-
-                                    FinalExam tempI = fe[eI].Clone();
-                                    FinalExam tempX = fe[x].Clone();
-                                    fe[eI] = tempX.Clone();
-                                    fe[x] = tempI.Clone();
-
-                                    fe[eI].Secretary = tempI.Secretary;
-                                    fe[eI].Member = tempI.Member;
-                                    fe[eI].President = tempI.President;
-                                    fe[x].President = tempX.President;
-                                    fe[x].Secretary = tempX.Secretary;
-                                    fe[x].Member = tempI.Member;
-                                }
-
-                                x++;
+                                neighbours[i].Schedule.FinalExams[index].President = neighbours[i].Schedule.FinalExams[index - 1].President;
                             }
-                        }*/
+                        }
+                        else if (v.Key.Equals("secretaryChangeLong"))
+                        {
+                            string[] data = v.Value.Split(';');
+                            int index = int.Parse(data[0]);
+                            string name = data[1];
+                            if (neighbours[i].Schedule.FinalExams[index-1].Secretary.Name.Equals(name))
+                            {
+                                neighbours[i].Schedule.FinalExams[index].Secretary = neighbours[i].Schedule.FinalExams[index - 1].Secretary;
+                            }
+                        }
                     }
                 }
 
@@ -414,62 +410,179 @@ namespace FinalExamScheduling.TabuSearchScheduling
                 //Trying to fix hard violations after
                 foreach (KeyValuePair<string, string> v in VL.Violations)
                 {
-                    if (v.Key.Equals("studentDuplicated") || v.Key.Equals("supervisorAvailability"))
+                    if (v.Key.Equals(v.Key.Equals("supervisorAvailability")))
                     {
-                        int index = int.Parse(v.Value);
-                        int x = rand.Next(0, ctx.Students.Length);
-                        while (index == x) x = rand.Next(0, ctx.Students.Length);
+                        string[] data = v.Value.Split(';');
+                        int index = int.Parse(data[0]);
+                        string name = data[1];
+                        if (neighbours[i].Schedule.FinalExams[index].Supervisor.Name.Equals(name))
+                        {
+                            int x = rand.Next(0, ctx.Students.Length);
+                            while (index == x) x = rand.Next(0, ctx.Students.Length);
 
-                        Student temp = neighbours[i].Schedule.FinalExams[index].Student;
+                            Student temp = neighbours[i].Schedule.FinalExams[index].Student;
 
-                        neighbours[i].Schedule.FinalExams[index].Student = neighbours[i].Schedule.FinalExams[x].Student;
-                        neighbours[i].Schedule.FinalExams[x].Student = temp;
-                        neighbours[i].Schedule.FinalExams[index].Supervisor = neighbours[i].Schedule.FinalExams[index].Student.Supervisor;
-                        neighbours[i].Schedule.FinalExams[x].Supervisor = neighbours[i].Schedule.FinalExams[x].Student.Supervisor;
-                        //Console.WriteLine("Swapped: " + neighbours[i].Schedule.FinalExams[index].Student.Name + " - " + neighbours[i].Schedule.FinalExams[x].Student.Name);
+                            neighbours[i].Schedule.FinalExams[index].Student = neighbours[i].Schedule.FinalExams[x].Student;
+                            neighbours[i].Schedule.FinalExams[x].Student = temp;
+                            neighbours[i].Schedule.FinalExams[index].Supervisor = neighbours[i].Schedule.FinalExams[index].Student.Supervisor;
+                            neighbours[i].Schedule.FinalExams[x].Supervisor = neighbours[i].Schedule.FinalExams[x].Student.Supervisor;
+                            //Console.WriteLine("Swapped: " + neighbours[i].Schedule.FinalExams[index].Student.Name + " - " + neighbours[i].Schedule.FinalExams[x].Student.Name);
+                        }
+                    }
+                    else if (v.Key.Equals("studentDuplicated"))
+                    {
+                        string[] data = v.Value.Split(';');
+                        int missingID = -1;
+                        int duplicatedID = -1;
+                        for (int index = 0; i < ctx.Students.Length; index++)
+                        {
+                            int currentIDCount = int.Parse(data[i]);
+                            if (currentIDCount == 0) missingID = currentIDCount;
+                            else if (currentIDCount > 1) duplicatedID = currentIDCount;
+                        }
+                        if (!(duplicatedID == -1 || missingID == -1))
+                        {
+                            foreach (FinalExam fe in neighbours[i].Schedule.FinalExams)
+                            {
+                                if (fe.Student.Id == duplicatedID)
+                                {
+                                    fe.Student = ctx.GetStudentById(missingID);
+                                    fe.Supervisor = fe.Student.Supervisor;
+                                }
+                            }
+                        }
                     }
                     else if (v.Key.Equals("presidentAvailability"))
                     {
+                        string[] data = v.Value.Split(';');
+                        int index = int.Parse(data[0]);
+                        string name = data[1];
+                        if (neighbours[i].Schedule.FinalExams[index].President.Name.Equals(name))
+                        {
+                            int x = rand.Next(0, ctx.Presidents.Length);
 
-                        int x = rand.Next(0, ctx.Presidents.Length);
-
-                        neighbours[i].Schedule.FinalExams[int.Parse(v.Value)].President = ctx.Presidents[x];
+                            neighbours[i].Schedule.FinalExams[index].President = ctx.Presidents[x];
+                        }
 
                     }
                     else if (v.Key.Equals("secretaryAvailability"))
                     {
-                        int x = rand.Next(0, ctx.Secretaries.Length);
+                        string[] data = v.Value.Split(';');
+                        int index = int.Parse(data[0]);
+                        string name = data[1];
+                        if (neighbours[i].Schedule.FinalExams[index].Secretary.Name.Equals(name))
+                        {
+                            int x = rand.Next(0, ctx.Secretaries.Length);
 
-                        neighbours[i].Schedule.FinalExams[int.Parse(v.Value)].Secretary = ctx.Secretaries[x];
+                            neighbours[i].Schedule.FinalExams[index].Secretary = ctx.Secretaries[x];
+                        }
                     }
-                    else if (v.Key.Equals("examinerAvailability") || v.Key.Equals("wrongExaminer"))
+                    else if (v.Key.Equals("wrongExaminer"))
                     {
-                        int x = rand.Next(0, ctx.Instructors.Length);
+                        string[] data = v.Value.Split(';');
+                        int index = int.Parse(data[0]);
+                        string name = data[1];
+                        if (neighbours[i].Schedule.FinalExams[index].Examiner.Name.Equals(name))
+                        {
+                            int instIndex = rand.Next(0, ctx.Instructors.Length);
+                            Instructor newExaminer = ctx.Instructors[instIndex];
+                            while (instIndex < ctx.Instructors.Length && !neighbours[i].Schedule.FinalExams[index].Student.ExamCourse.Instructors.Contains(newExaminer))
+                            {
+                                newExaminer = ctx.Instructors[instIndex];
+                                instIndex = rand.Next(0, ctx.Instructors.Length);
+                            }
+                            if (neighbours[i].Schedule.FinalExams[index].Student.ExamCourse.Instructors.Contains(newExaminer)) neighbours[i].Schedule.FinalExams[index].Examiner = newExaminer;
+                        }
+                    }
+                    else if (v.Key.Equals("examinerAvailability"))
+                    {
+                        string[] data = v.Value.Split(';');
+                        int index = int.Parse(data[0]);
+                        string name = data[1];
+                        if (neighbours[i].Schedule.FinalExams[index].Examiner.Name.Equals(name))
+                        {
+                            int x = rand.Next(0, ctx.Instructors.Length);
 
-                        neighbours[i].Schedule.FinalExams[int.Parse(v.Value)].Examiner = ctx.Instructors[x];
+                            neighbours[i].Schedule.FinalExams[index].Examiner = ctx.Instructors[x];
+                        }
                     }
                     else if (v.Key.Equals("memberAvailability"))
                     {
-                        int x = rand.Next(0, ctx.Members.Length);
+                        string[] data = v.Value.Split(';');
+                        int index = int.Parse(data[0]);
+                        string name = data[1];
+                        if (neighbours[i].Schedule.FinalExams[index].Member.Name.Equals(name))
+                        {
+                            int x = rand.Next(0, ctx.Members.Length);
 
-                        neighbours[i].Schedule.FinalExams[int.Parse(v.Value)].Member = ctx.Members[x];
+                            neighbours[i].Schedule.FinalExams[index].Member = ctx.Members[x];
+                        }
                     }
 
                     else if (v.Key.Equals("presidentChange"))
                     {
-                        int x = rand.Next(0, ctx.Presidents.Length);
+                        string[] data = v.Value.Split(';');
+                        int index = int.Parse(data[0]);
+                        string name = data[1];
 
-                        string[] indexes = v.Value.Split(';');
-                        int feIndex = int.Parse(indexes[0]);
-                        int offset = int.Parse(indexes[1]);
-
-                        neighbours[i].Schedule.FinalExams[feIndex + offset].President = ctx.Presidents[x];
+                        neighbours[i].Schedule.FinalExams[index].President = ctx.GetInstructorByName(name);
                     }
                     else if (v.Key.Equals("secretaryChange"))
                     {
-                        int x = rand.Next(0, ctx.Secretaries.Length);
+                        string[] data = v.Value.Split(';');
+                        int index = int.Parse(data[0]);
+                        string name = data[1];
 
-                        neighbours[i].Schedule.FinalExams[int.Parse(v.Value.Split(';')[0])].Secretary = ctx.Secretaries[x];
+                        neighbours[i].Schedule.FinalExams[index].Secretary = ctx.GetInstructorByName(name);
+                    }
+
+                    else if (v.Key.Equals("presidentIsSecretary"))
+                    {
+                        string[] data = v.Value.Split(';');
+                        int index = int.Parse(data[0]);
+                        string name = data[1];
+                        if (neighbours[i].Schedule.FinalExams[index].President.Name.Equals(name))
+                        {
+                            int x = rand.Next(0, ctx.Secretaries.Length);
+                            while (!ctx.Secretaries[x].Name.Equals(neighbours[i].Schedule.FinalExams[index].Secretary.Name))
+                            {
+                                x = rand.Next(0, ctx.Secretaries.Length);
+                            }
+
+                            neighbours[i].Schedule.FinalExams[index].Secretary = ctx.Secretaries[x];
+                        }
+                    }
+                    else if (v.Key.Equals("presidentIsMember"))
+                    {
+                        string[] data = v.Value.Split(';');
+                        int index = int.Parse(data[0]);
+                        string name = data[1];
+                        if (neighbours[i].Schedule.FinalExams[index].President.Name.Equals(name))
+                        {
+                            int x = rand.Next(0, ctx.Members.Length);
+                            while (!ctx.Members[x].Name.Equals(neighbours[i].Schedule.FinalExams[index].Member.Name))
+                            {
+                                x = rand.Next(0, ctx.Members.Length);
+                            }
+
+                            neighbours[i].Schedule.FinalExams[index].Member = ctx.Members[x];
+                        }
+                    }
+                    else if (v.Key.Equals("secretaryIsMember"))
+                    {
+                        string[] data = v.Value.Split(';');
+                        int index = int.Parse(data[0]);
+                        string name = data[1];
+                        if (neighbours[i].Schedule.FinalExams[index].Secretary.Name.Equals(name))
+                        {
+                            int x = rand.Next(0, ctx.Members.Length);
+                            while (!ctx.Members[x].Name.Equals(neighbours[i].Schedule.FinalExams[index].Member.Name))
+                            {
+                                x = rand.Next(0, ctx.Members.Length);
+                            }
+
+                            neighbours[i].Schedule.FinalExams[index].Member = ctx.Members[x];
+                        }
                     }
                 }
             }

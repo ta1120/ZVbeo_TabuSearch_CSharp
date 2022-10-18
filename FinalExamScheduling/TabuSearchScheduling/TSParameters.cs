@@ -10,7 +10,7 @@
 
         public const bool PrintDetails = false;
 
-        public const bool OptimizeSoftConstraints = true;
+        public const bool OptimizeSoftConstraints = false;
 
         public const bool RestartUntilTargetReached = true;
 
@@ -30,14 +30,14 @@
 
         public class Greedy
         {
-            public const int TabuLifeIterations = 10; //10
+            public const int TabuLifeIterations = 3; //10
 
-            public const int TabuListLength = 1; //3
+            public const int TabuListLength = 3; //3
         }
 
         //Other parameters
 
-        public const int WriteOutLimit = 80; //If scores under this are reached, the results will be written out to file. Set to negative value to write all results to file
+        public const int WriteOutLimit = 200000; //If scores under this are reached, the results will be written out to file. Set to negative value to write all results to file
 
         public const int MaxShuffles = 1;
 

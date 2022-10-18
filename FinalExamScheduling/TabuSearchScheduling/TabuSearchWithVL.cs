@@ -53,7 +53,7 @@ namespace FinalExamScheduling.TabuSearchScheduling
             if (TSParameters.PrintDetails) Console.WriteLine("Neighbour generation mode: " + TSParameters.Mode);
             if (TandemSearch && TSParameters.PrintDetails) Console.WriteLine("Starting from " + (NextModeIsRandom ? "Random" : "Greedy") + " mode");
 
-            while ((idleIterCounter < TSParameters.AllowedIdleIterations) || (TandemSearch && (tandemIdleRunCounter < TSParameters.TandemIdleSwitches)) || (TSParameters.AllowShuffleWhenStuck && shuffleCounter < TSParameters.MaxShuffles))
+            while ((idleIterCounter < TSParameters.AllowedIdleIterations && !TandemSearch) || (TandemSearch && (tandemIdleRunCounter < TSParameters.TandemIdleSwitches)) || (TSParameters.AllowShuffleWhenStuck && shuffleCounter < TSParameters.MaxShuffles))
             {
                 if (TSParameters.AllowShuffleWhenStuck && idleIterCounter >= TSParameters.AllowedIdleIterations && shuffleCounter < TSParameters.MaxShuffles)
                 {
@@ -102,7 +102,7 @@ namespace FinalExamScheduling.TabuSearchScheduling
                                 return bestSoFar;
                             }
                             if (failedIterations > 0 && TSParameters.PrintDetails) Console.WriteLine("No feasible solutions were generated... Retrying #" + failedIterations);
-                            neighbours = neighbourGenerator.GenerateNeighboursGreedy(current.Clone());
+                            neighbours = neighbourGenerator.GenerateNeighboursHeuristic(current.Clone());
                             //legjobb nem tabu szomszed kivalasztasa
                             bestNeighbour = SelectBestFeasibleCandidate(neighbours);
                             aspirationCandidate = SelectAspirationCandidate(neighbours);
@@ -115,6 +115,7 @@ namespace FinalExamScheduling.TabuSearchScheduling
                                 NextModeIsRandom = !NextModeIsRandom;
                                 idleIterCounter = 0;
                                 tandemIdleRunCounter++;
+                                
                             }
                             if (NextModeIsRandom)
                             {
@@ -124,6 +125,7 @@ namespace FinalExamScheduling.TabuSearchScheduling
                                     failedIterations = 0;
                                     idleIterCounter = 0;
                                     tandemIdleRunCounter++;
+                                    
                                     if (TSParameters.PrintDetails) Console.WriteLine("\n[ Tandem runner change ]");
                                     //globalTabuList.PrintTabuList();
                                     //return bestSoFar;
@@ -144,13 +146,14 @@ namespace FinalExamScheduling.TabuSearchScheduling
                                     failedIterations = 0;
                                     idleIterCounter = 0;
                                     tandemIdleRunCounter++;
+                                    
                                     if (TSParameters.PrintDetails) Console.WriteLine("\n[ Tandem runner change ]");
                                     //globalTabuList.PrintTabuList();
                                     //return bestSoFar;
                                 }
                                 if (failedIterations > 0 && TSParameters.PrintDetails) Console.WriteLine("[ Greedy ] No feasible solutions were generated... Retrying #" + failedIterations);
 
-                                neighbours = neighbourGenerator.GenerateNeighboursGreedy(current.Clone());
+                                neighbours = neighbourGenerator.GenerateNeighboursHeuristic(current.Clone());
                                 //legjobb nem tabu szomszed kivalasztasa
                                 bestNeighbour = SelectBestFeasibleCandidate(neighbours);
                                 aspirationCandidate = SelectAspirationCandidate(neighbours);
@@ -162,14 +165,17 @@ namespace FinalExamScheduling.TabuSearchScheduling
                             return bestSoFar;
                             break;
                     }
+                    if(TSParameters.PrintDetails) Console.WriteLine(bestNeighbour == null ? "No feasible neighbour generated" : "Found at least one feasible neighbour");
                 }
-                while (bestNeighbour == null);
+                while (bestNeighbour == null && (!TandemSearch || (TandemSearch && tandemIdleRunCounter < TSParameters.TandemIdleSwitches)));
+
+                if (bestNeighbour == null) bestNeighbour = current;
 
                 if (aspirationCandidate != null)
                 {
                     aspirationCandidate.VL = new ViolationList().Evaluate(aspirationCandidate);
                 }
-
+                
                 //tabulista iteraciok csokkentese
                 globalTabuList.DecreaseIterationsLeft();
 

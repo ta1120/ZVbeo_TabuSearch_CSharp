@@ -57,6 +57,8 @@ namespace FinalExamScheduling.TabuSearchScheduling
 
                 GetPresidentChangeViolations,
                 GetSecretaryChangeViolations,
+                GetPresidentChangeLongViolations,
+                GetSecretaryChangeLongViolations,
 
                 GetPresidentWorkloadViolations,
                 GetSecretaryWorkloadViolations,
@@ -64,11 +66,18 @@ namespace FinalExamScheduling.TabuSearchScheduling
 
                 GetSupervisorNotPresidentViolations,
                 GetSupervisorNotSecretaryViolations,
-                GetExaminerNotPresidentViolations/*,
-                GetExaminerNotSecretaryViolations,
-                GetExaminerNotMemberViolations,
+                GetExaminerNotPresidentViolations,
+                
+                GetPresidentIsSecretaryViolations,
+                GetPresidentIsMemberViolations,
+                GetSecretaryIsMemberViolations,
+                
+                GetSecretaryNotExaminerViolations,
+                GetMemberNotExaminerViolations,
                 GetSupervisorNotMemberViolations,
-                GetSupervisorNotExaminerViolations*/
+                GetSupervisorNotExaminerViolations,
+                
+                GetWrongSupervisorViolations
 
            };
 
@@ -92,7 +101,7 @@ namespace FinalExamScheduling.TabuSearchScheduling
             if (!TSParameters.SolveWrongExaminer) return vl;
             for (int i = 0; i < sch.FinalExams.Length; i++)
             {
-                if (!sch.FinalExams[i].Student.ExamCourse.Instructors.ToArray().Contains(sch.FinalExams[i].Examiner)) vl.AddViolation("wrongExaminer", i.ToString());
+                if (!sch.FinalExams[i].Student.ExamCourse.Instructors.ToArray().Contains(sch.FinalExams[i].Examiner)) vl.AddViolation("wrongExaminer", i.ToString() + ';' + sch.FinalExams[i].Examiner.Name);
             }
             return vl;
         }
@@ -107,12 +116,16 @@ namespace FinalExamScheduling.TabuSearchScheduling
             {
                 count[fe.Student.Id]++;
             }
+            string data = "";
+            bool duplicated = false;
             for (int i = 0; i < 100; i++)
             {
-                if (count[i] > 1)
-                {
-                    vl.AddViolation("studentDuplicated", i.ToString());
-                }
+                data += count[i].ToString() + ';';
+                if (count[i] > 1) duplicated = true;
+            }
+            if (duplicated)
+            {
+                vl.AddViolation("studentDuplicated", data);
             }
             return vl;
         }
@@ -125,7 +138,7 @@ namespace FinalExamScheduling.TabuSearchScheduling
             {
                 if (sch.FinalExams[i].President.Availability[i] == false)
                 {
-                    vl.AddViolation("presidentAvailability", i.ToString());
+                    vl.AddViolation("presidentAvailability", i.ToString() + ";" + sch.FinalExams[i].President.Name);
                 }
             }
             return vl;
@@ -139,7 +152,7 @@ namespace FinalExamScheduling.TabuSearchScheduling
             {
                 if (sch.FinalExams[i].Secretary.Availability[i] == false)
                 {
-                    vl.AddViolation("secretaryAvailability", i.ToString());
+                    vl.AddViolation("secretaryAvailability", i.ToString() + ";" + sch.FinalExams[i].Secretary.Name);
                 }
             }
             return vl;
@@ -153,7 +166,7 @@ namespace FinalExamScheduling.TabuSearchScheduling
             {
                 if (sch.FinalExams[i].Examiner.Availability[i] == false)
                 {
-                    vl.AddViolation("examinerAvailability", i.ToString());
+                    vl.AddViolation("examinerAvailability", i.ToString() + ";" + sch.FinalExams[i].Examiner.Name);
                 }
             }
             return vl;
@@ -167,7 +180,7 @@ namespace FinalExamScheduling.TabuSearchScheduling
             {
                 if (sch.FinalExams[i].Member.Availability[i] == false)
                 {
-                    vl.AddViolation("memberAvailability", i.ToString());
+                    vl.AddViolation("memberAvailability", i.ToString() + ";" + sch.FinalExams[i].Member.Name);
                 }
             }
             return vl;
@@ -181,7 +194,7 @@ namespace FinalExamScheduling.TabuSearchScheduling
             {
                 if (sch.FinalExams[i].Supervisor.Availability[i] == false)
                 {
-                    vl.AddViolation("supervisorAvailability", i.ToString());
+                    vl.AddViolation("supervisorAvailability", i.ToString() + ";" + sch.FinalExams[i].Supervisor.Name);
                 }
             }
             return vl;
@@ -194,19 +207,19 @@ namespace FinalExamScheduling.TabuSearchScheduling
             {
                 if (sch.FinalExams[i].President != sch.FinalExams[i + 1].President)
                 {
-                    vl.AddViolation("presidentChange", i.ToString() + ";" + "1");
+                    vl.AddViolation("presidentChange", (i+1).ToString() + ";" + sch.FinalExams[i].President.Name);
                 }
                 if (sch.FinalExams[i].President != sch.FinalExams[i + 2].President)
                 {
-                    vl.AddViolation("presidentChange", i.ToString() + ";" + "2");
+                    vl.AddViolation("presidentChange", (i+2).ToString() + ";" + sch.FinalExams[i].President.Name);
                 }
                 if (sch.FinalExams[i].President != sch.FinalExams[i + 3].President)
                 {
-                    vl.AddViolation("presidentChange", i.ToString() + ";" + "3");
+                    vl.AddViolation("presidentChange", (i+3).ToString() + ";" + sch.FinalExams[i].President.Name);
                 }
                 if (sch.FinalExams[i].President != sch.FinalExams[i + 4].President)
                 {
-                    vl.AddViolation("presidentChange", i.ToString() + ";" + "4");
+                    vl.AddViolation("presidentChange", (i+4).ToString() + ";" + sch.FinalExams[i].President.Name);
                 }
             }
             return vl;
@@ -220,19 +233,19 @@ namespace FinalExamScheduling.TabuSearchScheduling
             {
                 if (sch.FinalExams[i].Secretary != sch.FinalExams[i + 1].Secretary)
                 {
-                    vl.AddViolation("secretaryChange", i.ToString() + ";" + "1");
+                    vl.AddViolation("secretaryChange", (i+1).ToString() + ";" + sch.FinalExams[i].Secretary.Name);
                 }
-                if (sch.FinalExams[i + 1].Secretary != sch.FinalExams[i + 2].Secretary)
+                if (sch.FinalExams[i].Secretary != sch.FinalExams[i + 2].Secretary)
                 {
-                    vl.AddViolation("secretaryChange", (i + 1).ToString() + ";" + "2");
+                    vl.AddViolation("secretaryChange", (i + 2).ToString() + ";" + sch.FinalExams[i].Secretary.Name);
                 }
-                if (sch.FinalExams[i + 2].Secretary != sch.FinalExams[i + 3].Secretary)
+                if (sch.FinalExams[i].Secretary != sch.FinalExams[i + 3].Secretary)
                 {
-                    vl.AddViolation("secretaryChange", (i + 2).ToString() + ";" + "3");
+                    vl.AddViolation("secretaryChange", (i + 3).ToString() + ";" + sch.FinalExams[i].Secretary.Name);
                 }
-                if (sch.FinalExams[i + 3].Secretary != sch.FinalExams[i + 4].Secretary)
+                if (sch.FinalExams[i].Secretary != sch.FinalExams[i + 4].Secretary)
                 {
-                    vl.AddViolation("secretaryChange", (i + 3).ToString() + ";" + "4");
+                    vl.AddViolation("secretaryChange", (i + 4).ToString() + ";" + sch.FinalExams[i].Secretary.Name);
                 }
             }
             return vl;
@@ -393,7 +406,7 @@ namespace FinalExamScheduling.TabuSearchScheduling
                 FinalExam fi = sch.FinalExams[i];
                 if ((fi.Supervisor.Roles & Roles.President) == Roles.President && fi.Supervisor != fi.President)
                 {
-                    vl.AddViolation("supervisorNotPresident", i.ToString());
+                    vl.AddViolation("supervisorNotPresident", i.ToString() + ";" + fi.Supervisor.Name);
                 }
             }
             return vl;
@@ -408,7 +421,7 @@ namespace FinalExamScheduling.TabuSearchScheduling
                 FinalExam fi = sch.FinalExams[i];
                 if ((fi.Supervisor.Roles & Roles.Secretary) == Roles.Secretary && fi.Supervisor != fi.Secretary)
                 {
-                    vl.AddViolation("supervisorNotSecretary", i.ToString());
+                    vl.AddViolation("supervisorNotSecretary", i.ToString() + ";" + fi.Supervisor.Name);
                 }
             }
             return vl;
@@ -423,64 +436,160 @@ namespace FinalExamScheduling.TabuSearchScheduling
                 FinalExam fi = sch.FinalExams[i];
                 if ((fi.Examiner.Roles & Roles.President) == Roles.President && fi.Examiner != fi.President)
                 {
-                    vl.AddViolation("examinerNotPresident", i.ToString());
+                    vl.AddViolation("examinerNotPresident", i.ToString() + ";" + fi.Examiner.Name);
                 }
             }
             return vl;
         }
 
-        public ViolationList GetExaminerNotSecretaryViolations(Schedule sch)
+        public ViolationList GetPresidentIsSecretaryViolations(Schedule sch)
         {
             ViolationList vl = new ViolationList();
             for (int i = 0; i < sch.FinalExams.Length; i++)
             {
                 FinalExam fi = sch.FinalExams[i];
-                if ((fi.Examiner.Roles & Roles.Secretary) == Roles.Secretary && fi.Examiner != fi.Secretary)
+                if (fi.President.Name.Equals(fi.Secretary.Name))
                 {
-                    vl.AddViolation("examinerNotSecretary", i.ToString());
+                    vl.AddViolation("presidentIsSecretary", i.ToString() + ";" + sch.FinalExams[i].President.Name);
                 }
             }
             return vl;
         }
 
-        public ViolationList GetExaminerNotMemberViolations(Schedule sch)
+        public ViolationList GetPresidentIsMemberViolations(Schedule sch)
         {
             ViolationList vl = new ViolationList();
             for (int i = 0; i < sch.FinalExams.Length; i++)
             {
                 FinalExam fi = sch.FinalExams[i];
-                if ((fi.Examiner.Roles & Roles.Member) == Roles.Member && fi.Examiner != fi.Member)
+                if (fi.President.Name.Equals(fi.Member.Name))
                 {
-                    vl.AddViolation("examinerNotMember", i.ToString());
+                    vl.AddViolation("presidentIsMember", i.ToString() + ";" + sch.FinalExams[i].President.Name);
                 }
             }
             return vl;
         }
 
-        public ViolationList GetSupervisorNotMemberViolations(Schedule sch)
+        public ViolationList GetSecretaryIsMemberViolations(Schedule sch)
         {
             ViolationList vl = new ViolationList();
             for (int i = 0; i < sch.FinalExams.Length; i++)
             {
                 FinalExam fi = sch.FinalExams[i];
-                if ((fi.Supervisor.Roles & Roles.Member) == Roles.Member && fi.Supervisor != fi.Member)
+                if (fi.Member.Name.Equals(fi.Secretary.Name))
                 {
-                    vl.AddViolation("supervisorNotMember", i.ToString());
+                    vl.AddViolation("secretaryIsMember", i.ToString() + ";" + sch.FinalExams[i].Secretary.Name);
                 }
             }
             return vl;
         }
-
+        public ViolationList GetSecretaryNotExaminerViolations(Schedule sch)
+        {
+            ViolationList vl = new ViolationList();
+            for (int i = 0; i < sch.FinalExams.Length; i++)
+            {
+                FinalExam fi = sch.FinalExams[i];
+                if (!fi.Secretary.Name.Equals(fi.Examiner.Name) && fi.Student.ExamCourse.Instructors.Contains(fi.Secretary))
+                {
+                    vl.AddViolation("secretaryNotExaminer", i.ToString() + ";" + fi.Secretary.Name);
+                }
+            }
+            return vl;
+        }
+        public ViolationList GetMemberNotExaminerViolations(Schedule sch)
+        {
+            ViolationList vl = new ViolationList();
+            for (int i = 0; i < sch.FinalExams.Length; i++)
+            {
+                FinalExam fi = sch.FinalExams[i];
+                if (!fi.Member.Name.Equals(fi.Examiner.Name) && fi.Student.ExamCourse.Instructors.Contains(fi.Member))
+                {
+                    vl.AddViolation("memberNotExaminer", i.ToString() + ";" + fi.Member.Name);
+                }
+            }
+            return vl;
+        }
         public ViolationList GetSupervisorNotExaminerViolations(Schedule sch)
         {
             ViolationList vl = new ViolationList();
             for (int i = 0; i < sch.FinalExams.Length; i++)
             {
                 FinalExam fi = sch.FinalExams[i];
-                if (fi.Student.ExamCourse.Instructors.Contains(fi.Supervisor) && fi.Supervisor != fi.Examiner)
+                if (!fi.Supervisor.Name.Equals(fi.Examiner.Name) && fi.Student.ExamCourse.Instructors.Contains(fi.Supervisor))
                 {
-                    vl.AddViolation("supervisorNotExaminer", i.ToString());
+                    vl.AddViolation("supervisorNotExaminer", i.ToString() + ";" + fi.Supervisor.Name);
                 }
+            }
+            return vl;
+        }
+        public ViolationList GetSupervisorNotMemberViolations(Schedule sch)
+        {
+            ViolationList vl = new ViolationList();
+            for (int i = 0; i < sch.FinalExams.Length; i++)
+            {
+                FinalExam fi = sch.FinalExams[i];
+                if (!fi.Supervisor.Name.Equals(fi.Member.Name) && (fi.Supervisor.Roles & Roles.Member) == Roles.Member)
+                {
+                    vl.AddViolation("supervisorNotMember", i.ToString() + ";" + fi.Supervisor.Name);
+                }
+            }
+            return vl;
+        }
+        public ViolationList GetWrongSupervisorViolations(Schedule sch)
+        {
+            ViolationList vl = new ViolationList();
+            for (int i = 0; i < sch.FinalExams.Length; i++)
+            {
+                FinalExam fi = sch.FinalExams[i];
+                if (!fi.Supervisor.Name.Equals(fi.Student.Supervisor.Name))
+                {
+                    vl.AddViolation("wrongSupervisor", i.ToString());
+                }
+            }
+            return vl;
+        }
+
+        public ViolationList GetPresidentChangeLongViolations(Schedule sch)
+        {
+            ViolationList vl = new ViolationList();
+            int ctr = 1;
+            Instructor currentPresident = sch.FinalExams[0].President;
+
+            for (int i = 0; i < sch.FinalExams.Length; i++)
+            {
+                if (ctr > 10)
+                {
+                    ctr = 1;
+                    currentPresident = sch.FinalExams[i].President;
+                }
+                else
+                {
+                    ctr++;
+                    if (!sch.FinalExams[i].President.Name.Equals(currentPresident.Name)) vl.AddViolation("presidentChangeLong",i.ToString() + ";" + currentPresident.Name);
+                }
+
+            }
+            return vl;
+        }
+        public ViolationList GetSecretaryChangeLongViolations(Schedule sch)
+        {
+            ViolationList vl = new ViolationList();
+            int ctr = 1;
+            Instructor currentSecretary = sch.FinalExams[0].Secretary;
+
+            for (int i = 0; i < sch.FinalExams.Length; i++)
+            {
+                if (ctr > 10)
+                {
+                    ctr = 1;
+                    currentSecretary = sch.FinalExams[i].Secretary;
+                }
+                else
+                {
+                    ctr++;
+                    if (!sch.FinalExams[i].Secretary.Name.Equals(currentSecretary.Name)) vl.AddViolation("secretaryChangeLong", i.ToString() + ";" + currentSecretary.Name);
+                }
+
             }
             return vl;
         }

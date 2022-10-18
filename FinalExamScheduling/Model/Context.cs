@@ -40,6 +40,11 @@ namespace FinalExamScheduling.Model
             return Instructors.FirstOrDefault(x => x.Name == name);
         }
 
+        public Student GetStudentById(int id)
+        {
+            return Students.FirstOrDefault(x => x.Id == id);
+        }
+
         private void FillIDs(IEnumerable<Entity> entities)
         {
             int id = 0;
